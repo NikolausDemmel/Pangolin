@@ -254,13 +254,17 @@ public:
     size_t start() const;
     
     size_t size() const;
+
+    void SetGrowingFactor(float growing_factor);
     
 protected:  
     void CheckResize(size_t num_verts);
     
     size_t NextSize(size_t min_size) const;
     
-    size_t  m_num_verts;    
+    size_t  m_num_verts;
+
+    float m_growing_factor = 2;
 };
 
 size_t GlFormatChannels(GLenum data_layout);

@@ -815,11 +815,12 @@ template<typename Derived> inline
 void GlSizeableBuffer::Add(const Eigen::DenseBase<Derived>& vec)
 {
     typedef typename Eigen::DenseBase<Derived>::Scalar Scalar;
+    // TODO: verify column-major and minimal inner and outer stride
     assert(vec.rows()==GlBuffer::count_per_element);
-    CheckResize(m_num_verts + 1);
+    CheckResize(m_num_verts + vec.cols());
     // TODO: taking address of first element is really dodgey. Need to work out
     // when this is okay!
-    Upload(&vec(0,0), sizeof(Scalar)*vec.rows()*vec.cols(), sizeof(Scalar)*vec.rows()*m_num_verts);
+    Upload(vec.data(), sizeof(Scalar)*vec.rows()*vec.cols(), sizeof(Scalar)*vec.rows()*m_num_verts);
     m_num_verts += vec.cols();
 }
 
@@ -831,7 +832,7 @@ void GlSizeableBuffer::Update(const Eigen::DenseBase<Derived>& vec, size_t posit
     CheckResize(position + vec.cols() );
     // TODO: taking address of first element is really dodgey. Need to work out
     // when this is okay!
-    Upload(&vec(0,0), sizeof(Scalar)*vec.rows()*vec.cols(), sizeof(Scalar)*vec.rows()*position );
+    Upload(vec.data(), sizeof(Scalar)*vec.rows()*vec.cols(), sizeof(Scalar)*vec.rows()*position );
     m_num_verts = std::max(position+vec.cols(), m_num_verts);
 }
 #endif
@@ -842,6 +843,11 @@ inline size_t GlSizeableBuffer::start() const {
 
 inline size_t GlSizeableBuffer::size() const {
     return m_num_verts;
+}
+
+inline void GlSizeableBuffer::SetGrowingFactor(const float growing_factor) {
+    assert(growing_factor > 1);
+    m_growing_factor = growing_factor;
 }
 
 inline void GlSizeableBuffer::CheckResize(size_t num_verts)
@@ -856,7 +862,7 @@ inline size_t GlSizeableBuffer::NextSize(size_t min_size) const
 {
     size_t new_size = std::max(GlBuffer::num_elements, 1u);
     while(new_size < min_size) {
-        new_size *= 2;
+        new_size = std::max(new_size + 1, size_t(new_size*m_growing_factor));
     }
     return new_size;
 }
