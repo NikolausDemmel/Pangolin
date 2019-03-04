@@ -773,20 +773,27 @@ inline void GlBuffer::Reinitialise(GlBuffer const& other )
     Reinitialise(other.buffer_type, other.num_elements, other.datatype, other.count_per_element, other.gluse);
 }
 
-inline void GlBuffer::Resize(GLuint new_num_elements)
+inline void GlBuffer::Resize(const GLuint new_num_elements, const GLuint backup_upto_position)
 {
+    const GLuint new_size_bytes = new_num_elements*GlDataTypeBytes(datatype)*count_per_element;
     if(bo!=0) {
 #ifndef HAVE_GLES
         // Backup current data, reinit memory, restore old data
-        const size_t backup_elements = std::min(new_num_elements,num_elements);
-        const size_t backup_size_bytes = backup_elements*GlDataTypeBytes(datatype)*count_per_element;
-        unsigned char* backup = new unsigned char[backup_size_bytes];
-        Bind();
-        glGetBufferSubData(buffer_type, 0, backup_size_bytes, backup);
-        glBufferData(buffer_type, new_num_elements*GlDataTypeBytes(datatype)*count_per_element, 0, gluse);
-        glBufferSubData(buffer_type, 0, backup_size_bytes, backup);
-        Unbind();
-        delete[] backup;
+        const GLuint backup_elements = std::min({new_num_elements, num_elements, backup_upto_position});
+        if (backup_elements > 0) {
+            const GLuint backup_size_bytes = backup_elements*GlDataTypeBytes(datatype)*count_per_element;
+            unsigned char* backup = new unsigned char[backup_size_bytes];
+            Bind();
+            glGetBufferSubData(buffer_type, 0, backup_size_bytes, backup);
+            glBufferData(buffer_type, new_size_bytes, 0, gluse);
+            glBufferSubData(buffer_type, 0, backup_size_bytes, backup);
+            Unbind();
+            delete[] backup;
+        } else {
+            Bind();
+            glBufferData(buffer_type, new_size_bytes, 0, gluse);
+            Unbind();
+        }
 #else
         throw std::exception();
 #endif
@@ -794,6 +801,7 @@ inline void GlBuffer::Resize(GLuint new_num_elements)
         Reinitialise(buffer_type, new_num_elements, datatype, count_per_element, gluse);
     }
     num_elements = new_num_elements;
+    size_bytes = new_size_bytes;
 }
 
 
@@ -815,7 +823,7 @@ template<typename Derived> inline
 void GlSizeableBuffer::Add(const Eigen::DenseBase<Derived>& vec)
 {
     typedef typename Eigen::DenseBase<Derived>::Scalar Scalar;
-    // TODO: verify column-major and minimal inner and outer stride
+    // TODO: verify size of Scalar, column-major, minimal inner and outer stride
     assert(vec.rows()==GlBuffer::count_per_element);
     CheckResize(m_num_verts + vec.cols());
     // TODO: taking address of first element is really dodgey. Need to work out
@@ -825,17 +833,39 @@ void GlSizeableBuffer::Add(const Eigen::DenseBase<Derived>& vec)
 }
 
 template<typename Derived> inline
-void GlSizeableBuffer::Update(const Eigen::DenseBase<Derived>& vec, size_t position )
+void GlSizeableBuffer::Update(const Eigen::DenseBase<Derived>& vec, GLuint position )
 {
     typedef typename Eigen::DenseBase<Derived>::Scalar Scalar;
+    // TODO: verify size of Scalar, column-major, minimal inner and outer stride
     assert(vec.rows()==GlBuffer::count_per_element);
-    CheckResize(position + vec.cols() );
+    CheckResize(position + vec.cols(), position);
     // TODO: taking address of first element is really dodgey. Need to work out
     // when this is okay!
     Upload(vec.data(), sizeof(Scalar)*vec.rows()*vec.cols(), sizeof(Scalar)*vec.rows()*position );
     m_num_verts = std::max(position+vec.cols(), m_num_verts);
 }
 #endif
+
+template<typename ValueType> inline
+void GlSizeableBuffer::Add(const std::vector<ValueType>& vec) {
+    assert(sizeof(ValueType) == count_per_element * GlDataTypeBytes(datatype));
+    CheckResize(m_num_verts + vec.size());
+    Upload(vec.data(),
+           count_per_element * GlDataTypeBytes(datatype) * vec.size(),
+           count_per_element * GlDataTypeBytes(datatype) * m_num_verts);
+    m_num_verts += vec.size();
+}
+
+template<typename ValueType> inline
+void GlSizeableBuffer::Update(const std::vector<ValueType>& vec, GLuint position)
+{
+    assert(sizeof(ValueType) == count_per_element * GlDataTypeBytes(datatype));
+    CheckResize(position + vec.size(), position);
+    Upload(vec.data(),
+           count_per_element * GlDataTypeBytes(datatype) * vec.size(),
+           count_per_element * GlDataTypeBytes(datatype) * position);
+    m_num_verts = std::max(position + static_cast<GLuint>(vec.size()), m_num_verts);
+}
 
 inline size_t GlSizeableBuffer::start() const {
     return 0;
@@ -850,19 +880,19 @@ inline void GlSizeableBuffer::SetGrowingFactor(const float growing_factor) {
     m_growing_factor = growing_factor;
 }
 
-inline void GlSizeableBuffer::CheckResize(size_t num_verts)
+inline void GlSizeableBuffer::CheckResize(GLuint num_verts, GLuint backup_upto_position)
 {
     if( num_verts > GlBuffer::num_elements) {
-        const size_t new_size = NextSize(num_verts);
-        GlBuffer::Resize((GLuint)new_size);
+        const GLuint new_size = NextSize(num_verts);
+        GlBuffer::Resize(new_size, backup_upto_position);
     }
 }
 
-inline size_t GlSizeableBuffer::NextSize(size_t min_size) const
+inline GLuint GlSizeableBuffer::NextSize(GLuint min_size) const
 {
-    size_t new_size = std::max(GlBuffer::num_elements, 1u);
+    GLuint new_size = std::max(GlBuffer::num_elements, 1u);
     while(new_size < min_size) {
-        new_size = std::max(new_size + 1, size_t(new_size*m_growing_factor));
+        new_size = std::max(new_size + 1, GLuint(new_size*m_growing_factor));
     }
     return new_size;
 }

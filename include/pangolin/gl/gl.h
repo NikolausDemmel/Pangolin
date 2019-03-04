@@ -39,6 +39,7 @@
 #include <Eigen/Core>
 #endif
 
+#include <limits>
 #include <cstdlib>
 #include <iostream>
 #include <math.h>
@@ -228,7 +229,7 @@ struct PANGOLIN_EXPORT GlBuffer : public GlBufferData
     
     void Reinitialise(GlBufferType buffer_type, GLuint num_elements, GLenum datatype, GLuint count_per_element, GLenum gluse, const unsigned char* data = nullptr );
     void Reinitialise(GlBuffer const& other );
-    void Resize(GLuint num_elements);
+    void Resize(GLuint num_elements, GLuint backup_upto_position = std::numeric_limits<GLuint>::max());
             
     GLenum datatype;
     GLuint num_elements;
@@ -248,8 +249,14 @@ public:
     void Add(const Eigen::DenseBase<Derived>& vec);
     
     template<typename Derived>
-    void Update(const Eigen::DenseBase<Derived>& vec, size_t position = 0);
+    void Update(const Eigen::DenseBase<Derived>& vec, GLuint position = 0);
 #endif
+
+    template<typename ValueType>
+    void Add(const std::vector<ValueType>& vec);
+
+    template<typename ValueType>
+    void Update(const std::vector<ValueType>& vec, GLuint position = 0);
     
     size_t start() const;
     
@@ -257,12 +264,12 @@ public:
 
     void SetGrowingFactor(float growing_factor);
     
-protected:  
-    void CheckResize(size_t num_verts);
+protected:
+    void CheckResize(GLuint num_verts, GLuint backup_upto_position = std::numeric_limits<GLuint>::max());
     
-    size_t NextSize(size_t min_size) const;
+    GLuint NextSize(GLuint min_size) const;
     
-    size_t  m_num_verts;
+    GLuint  m_num_verts;
 
     float m_growing_factor = 2;
 };
