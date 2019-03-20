@@ -29,9 +29,17 @@
 #include <pangolin/display/display.h>
 #include <pangolin/display/device/PangolinNSApplication.h>
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12
-#  define NSAnyEventMask NSEventMaskAny
-#endif
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
+#pragma message "MAC_OS_X_VERSION_MAX_ALLOWED: " XSTR(MAC_OS_X_VERSION_MAX_ALLOWED)
+#pragma message "MAC_OS_X_VERSION_MIN_REQUIRED: " XSTR(MAC_OS_X_VERSION_MIN_REQUIRED)
+#pragma message "MAC_OS_X_VERSION_10_12: " XSTR(MAC_OS_X_VERSION_10_12)
+
+
+//#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12
+//#  define NSAnyEventMask NSEventMaskAny
+//#endif
 
 ////////////////////////////////////////////////////////////////////
 // PangolinNSApplication
