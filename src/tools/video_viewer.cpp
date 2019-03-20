@@ -2,12 +2,9 @@
 
 #include <pangolin/display/image_view.h>
 #include <pangolin/gl/glpixformat.h>
-#include <pangolin/gl/gltexturecache.h>
-#include <pangolin/handler/handler_image.h>
 #include <pangolin/pangolin.h>
 #include <pangolin/utils/file_utils.h>
 #include <pangolin/utils/sigstate.h>
-#include <pangolin/utils/timer.h>
 #include <pangolin/video/video_input.h>
 
 
@@ -148,7 +145,7 @@ void VideoViewer::Run()
                         images[v], video.Streams()[v].PixFormat(),
                         pangolin::MakeUniqueFilename("capture.png")
                     );
-                }catch(std::exception e){
+                }catch(const std::exception& e){
                     pango_print_error("Unable to save frame: %s\n", e.what());
                 }
             }
