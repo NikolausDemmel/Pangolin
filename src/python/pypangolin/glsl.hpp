@@ -1,7 +1,7 @@
 /* This file is part of the Pangolin Project.
  * http://github.com/stevenlovegrove/Pangolin
  *
- * Copyright (c) 2014 Steven Lovegrove
+ * Copyright (c) Andrey Mnatsakanov
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -27,53 +27,10 @@
 
 #pragma once
 
-#include <pangolin/gl/glplatform.h>
+#include <pybind11/pybind11.h>
 
-namespace pangolin {
+namespace py_pangolin {
 
-PANGOLIN_EXPORT
-const char* glErrorString(GLenum error);
+    void bind_glsl(pybind11::module &m);
 
-/// Clone of gluProject
-PANGOLIN_EXPORT
-GLint glProject(
-    float objx, float objy, float objz,
-    const float modelMatrix[16],
-    const float projMatrix[16],
-    const GLint viewport[4],
-    float* winx, float* winy, float* winz
-);
-
-
-/// Clone of gluUnProject
-PANGOLIN_EXPORT
-GLint glUnProject(
-    float winx, float winy, float winz,
-    const float modelMatrix[16],
-    const float projMatrix[16],
-    const GLint viewport[4],
-    float* objx, float* objy, float* objz
-);
-
-/// Clone of gluProject
-PANGOLIN_EXPORT
-GLint glProject(
-    double objx, double objy, double objz,
-    const double modelMatrix[16],
-    const double projMatrix[16],
-    const GLint viewport[4],
-    double* winx, double* winy, double* winz
-);
-
-
-/// Clone of gluUnProject
-PANGOLIN_EXPORT
-GLint glUnProject(
-    double winx, double winy, double winz,
-    const double modelMatrix[16],
-    const double projMatrix[16],
-    const GLint viewport[4],
-    double* objx, double* objy, double* objz
-);
-
-}
+}  // py_pangolin
