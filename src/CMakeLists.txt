@@ -343,7 +343,7 @@ if(BUILD_PANGOLIN_EIGEN)
       # Eigen causes many of these errors. Suppress.
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
     endif()
-    message(STATUS "Eigen Found and Enabled")
+    message(STATUS "Eigen Found and Enabled: ${EIGEN_INCLUDE_DIR}")
   endif()
 endif()
 
